@@ -86,6 +86,11 @@ dependencies {
 
     implementation("androidx.core:core-splashscreen:1.0.0")
 
+    val  lifecycle_version = "2.8.1"
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version")
+
+
+
 }
 kapt{
     correctErrorTypes = true

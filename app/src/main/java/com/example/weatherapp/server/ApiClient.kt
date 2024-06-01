@@ -7,14 +7,14 @@ import java.util.concurrent.TimeUnit
 
 class ApiClient {
     private lateinit var retrofit: Retrofit
-    private val client=OkHttpClient.Builder()
-            .connectTimeout(60,TimeUnit.SECONDS)
-            .readTimeout(60,TimeUnit.SECONDS)
-            .writeTimeout(60,TimeUnit.SECONDS)
-            .build()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .build()
 
 
-    fun getClient():Retrofit{
+    fun getWeatherClient(): Retrofit {
         retrofit = Retrofit.Builder()
             .baseUrl("https://api.openweathermap.org")
             .client(client)
@@ -24,7 +24,15 @@ class ApiClient {
         return retrofit
     }
 
+    fun getTimeZoneClient(): Retrofit {
+        retrofit = Retrofit.Builder()
+            .baseUrl("https://api.bigdatacloud.net/")
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
 
+        return retrofit
+    }
 
 
 }

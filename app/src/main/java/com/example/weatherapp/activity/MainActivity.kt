@@ -6,10 +6,6 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
 import android.location.LocationManager
-import android.location.SettingInjectorService
-import android.media.audiofx.EnvironmentalReverb
-import android.media.audiofx.Equalizer.Settings
-import android.media.audiofx.Virtualizer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -20,9 +16,6 @@ import android.view.WindowManager.LayoutParams.*
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
-import androidx.core.content.getSystemService
-import androidx.core.location.LocationManagerCompat.getCurrentLocation
-import androidx.core.location.LocationManagerCompat.isLocationEnabled
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weatherapp.R
@@ -41,21 +34,23 @@ import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
 
+    private var isTimeZoneLoaded: Boolean = false
+    private var isForecastWeatherLoaded: Boolean = false
     private lateinit var binding: ActivityMainBinding
-    private val weatherViewModel:WeatherViewModel by viewModels()
+    private val weatherViewModel: WeatherViewModel by viewModels()
     private val calender by lazy { Calendar.getInstance() }
     private val forecastAdapter by lazy { ForecastAdapter() }
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
-    var longtude:Double = 0.0
-    var latitude : Double = 0.0
+    var longtude: Double = 0.0
+    var latitude: Double = 0.0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         Thread.sleep(3000)
         installSplashScreen()
-            //location
-        fusedLocationProviderClient= LocationServices.getFusedLocationProviderClient(this)
+        //location
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
 
         getCurrentLocation()
@@ -63,57 +58,56 @@ class MainActivity : AppCompatActivity() {
 
 
 
-
-       window.apply {
+        window.apply {
             addFlags(FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
             statusBarColor = Color.TRANSPARENT
         }
         binding.apply {
 
 
-            var lat = intent.getDoubleExtra("lat",0.0)
-            var lon = intent.getDoubleExtra("lon",0.0)
+            var lat = intent.getDoubleExtra("lat", 0.0)
+            var lon = intent.getDoubleExtra("lon", 0.0)
             var name = intent.getStringExtra("name")
-            if(lat == 0.0){
-                lat=latitude
-                lon=longtude
-                 name="Your Current Location"
+            if (lat == 0.0) {
+                lat = latitude
+                lon = longtude
+                name = "Your Current Location"
             }
 
-                addCity.setOnClickListener{
-                    startActivity(Intent(this@MainActivity,CityListActivity::class.java))
-                }
+            addCity.setOnClickListener {
+                startActivity(Intent(this@MainActivity, CityListActivity::class.java))
+            }
             //Current Weather
 
-            cityTxt.text=name
+            cityTxt.text = name
             progressBar.visibility = View.GONE
-            weatherViewModel.loadCurrentWeather(lat,lon,"metric").enqueue(object :
+            weatherViewModel.loadCurrentWeather(lat, lon, "metric").enqueue(object :
                 retrofit2.Callback<CurrentResponseApi> {
                 override fun onResponse(
                     call: Call<CurrentResponseApi>,
                     response: Response<CurrentResponseApi>
                 ) {
-                    if (response.isSuccessful){
+                    if (response.isSuccessful) {
                         val data = response.body()
-                        progressBar.visibility=View.GONE
-                        detailLayout.visibility=View.VISIBLE
+                        progressBar.visibility = View.GONE
+                        detailLayout.visibility = View.VISIBLE
                         data.let {
-                            statusTxt.text=
-                                it?.weather?.get(0)?.main?:"-"
-                            windTxt.text=
-                                it?.wind?.speed?.let { Math.round(it).toString() }+"Km"
-                            humidity.text=
-                                it?.main?.humidity?.toString()+"%"
-                            currentTempTxt.text=
-                                it?.main?.temp.let { Math.round(it!!).toString() }+"°"
-                            maxTempTxt.text=
-                                it?.main?.tempMax.let { Math.round(it!!).toString() }+"°"
-                            lowTempTxt.text=
-                                it?.main?.tempMin.let { Math.round(it!!).toString() }+"°"
-                            setEffectRainSnow(it?.weather?.get(0)?.icon?:"-")
+                            statusTxt.text =
+                                it?.weather?.get(0)?.main ?: "-"
+                            windTxt.text =
+                                it?.wind?.speed?.let { Math.round(it).toString() } + "Km"
+                            humidity.text =
+                                it?.main?.humidity?.toString() + "%"
+                            currentTempTxt.text =
+                                it?.main?.temp.let { Math.round(it!!).toString() } + "°"
+                            maxTempTxt.text =
+                                it?.main?.tempMax.let { Math.round(it!!).toString() } + "°"
+                            lowTempTxt.text =
+                                it?.main?.tempMin.let { Math.round(it!!).toString() } + "°"
+                            setEffectRainSnow(it?.weather?.get(0)?.icon ?: "-")
 
-                            val drawable = if (isNightNow())R.drawable.nightbg
-                            else{
+                            val drawable = if (isNightNow()) R.drawable.nightbg
+                            else {
                                 setDynamicallyWallpaper(it?.weather?.get(0)?.icon ?: "-")
                             }
 
@@ -133,13 +127,13 @@ class MainActivity : AppCompatActivity() {
 
             //settings blur View
 
-            var  radius=10f
+            var radius = 10f
             val decorView = window.decorView
-            val rootView = (decorView.findViewById(android.R.id.content)as ViewGroup)
-            val windowsBackground=decorView.background
+            val rootView = (decorView.findViewById(android.R.id.content) as ViewGroup)
+            val windowsBackground = decorView.background
 
             rootView.let {
-                blurView.setupWith(it,RenderScriptBlur(this@MainActivity))
+                blurView.setupWith(it, RenderScriptBlur(this@MainActivity))
                     .setFrameClearDrawable(windowsBackground)
                     .setBlurRadius(radius)
                 blurView.outlineProvider = ViewOutlineProvider.BACKGROUND
@@ -148,60 +142,76 @@ class MainActivity : AppCompatActivity() {
             }
 
             //Forecast Temp
-            weatherViewModel.loadForecastWeather(lat,lon,"metric").enqueue(object :retrofit2.Callback<ForecastResponseApi>{
-                override fun onResponse(
-                    call: Call<ForecastResponseApi>,
-                    response: Response<ForecastResponseApi>
-                ) {
-                   if (response.isSuccessful){
-                       val data = response.body()
-                       blurView.visibility=View.VISIBLE
+            weatherViewModel.loadForecastWeather(lat, lon, "metric")
+                .enqueue(object : retrofit2.Callback<ForecastResponseApi> {
+                    override fun onResponse(
+                        call: Call<ForecastResponseApi>,
+                        response: Response<ForecastResponseApi>
+                    ) {
+                        if (response.isSuccessful) {
+                            isForecastWeatherLoaded = true
+                            val data = response.body()
+                            blurView.visibility = View.VISIBLE
 
-                       data?.let {
+                            data?.let {
 
-                           forecastAdapter.differ.submitList(it.list)
-                           forecastView.apply {
-                               layoutManager = LinearLayoutManager(this@MainActivity,LinearLayoutManager.HORIZONTAL,false)
-                               adapter = forecastAdapter
+                                forecastAdapter.differ.submitList(it.list)
+                                forecastView.apply {
+                                    layoutManager = LinearLayoutManager(
+                                        this@MainActivity,
+                                        LinearLayoutManager.HORIZONTAL,
+                                        false
+                                    )
+                                    adapter = forecastAdapter
 
-                           }
+                                }
 
-                       }
-                   }
-                }
+                            }
+                        }
+                    }
 
-                override fun onFailure(p0: Call<ForecastResponseApi>, t: Throwable) {
-                    Log.e("ForecastResponseApi", "Failure: ${t.message}", t)
-                    showError("Failed to load timezone data")                }
+                    override fun onFailure(p0: Call<ForecastResponseApi>, t: Throwable) {
+                        isForecastWeatherLoaded = false
+                        Log.e("ForecastResponseApi", "Failure: ${t.message}", t)
+                        showError("Failed to load timezone data")
+                    }
 
-            })
+                })
+            weatherViewModel.getTimeZone(lat, lon)
 
+            observeViewModel()
+        }
+    }
 
+    private fun observeViewModel() {
+        weatherViewModel.timeZone.observe(this) {
+            if (it != null) {
+                forecastAdapter.setTimeZone(it.utcOffset)
+            }
 
         }
     }
 
     private fun getCurrentLocation() {
-        if (checkPermission()){
-            if (isLocationEnabled()){
+        if (checkPermission()) {
+            if (isLocationEnabled()) {
 
                 //Final latitude and longitude code
 
-                fusedLocationProviderClient.lastLocation.addOnCompleteListener(this){task ->
+                fusedLocationProviderClient.lastLocation.addOnCompleteListener(this) { task ->
 
-                    val location :Location? = task.result
-                    if (location == null)
-                    {
+                    val location: Location? = task.result
+                    if (location == null) {
                         Toast.makeText(this, "null recieved", Toast.LENGTH_SHORT).show()
-                    }else{
+                    } else {
                         Toast.makeText(this, "get success", Toast.LENGTH_SHORT).show()
-                        longtude= location.longitude
+                        longtude = location.longitude
                         latitude = location.latitude
                     }
 
                 }
 
-            }else{
+            } else {
                 //setting open
                 Toast.makeText(this, "Turn on Location", Toast.LENGTH_SHORT).show()
                 val intent = Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
@@ -209,18 +219,18 @@ class MainActivity : AppCompatActivity() {
 
             }
 
-        }else{
-        // request permission
+        } else {
+            // request permission
             requestPermission()
         }
 
 
-
     }
 
-    private fun isLocationEnabled():Boolean{
-        val locationManager:LocationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)|| locationManager.isProviderEnabled(
+    private fun isLocationEnabled(): Boolean {
+        val locationManager: LocationManager =
+            getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
             LocationManager.NETWORK_PROVIDER
         )
 
@@ -228,23 +238,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestPermission() {
         ActivityCompat.requestPermissions(
-            this, arrayOf(android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                android.Manifest.permission.ACCESS_FINE_LOCATION),
+            this, arrayOf(
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ),
             PERMISSION_REQUEST_ACCESS_LOCATION
         )
     }
 
-    companion object{
-    private const val PERMISSION_REQUEST_ACCESS_LOCATION=100
+    companion object {
+        private const val PERMISSION_REQUEST_ACCESS_LOCATION = 100
 
-}
+    }
 
-    private fun checkPermission():Boolean{
-        if (ActivityCompat.checkSelfPermission(this,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION)==
-            PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED)
-        {
+    private fun checkPermission(): Boolean {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) ==
+            PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
             return true
         }
         return false
@@ -256,64 +272,76 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode== PERMISSION_REQUEST_ACCESS_LOCATION){
-            if (grantResults.isNotEmpty()&& grantResults[0]==PackageManager.PERMISSION_GRANTED){
+        if (requestCode == PERMISSION_REQUEST_ACCESS_LOCATION) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(applicationContext, "Generated", Toast.LENGTH_SHORT).show()
                 getCurrentLocation()
-            }else{
+            } else {
                 Toast.makeText(applicationContext, "Denied", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun isNightNow():Boolean{
-            val time = calender.get(Calendar.HOUR_OF_DAY)
+    private fun isNightNow(): Boolean {
+        val time = calender.get(Calendar.HOUR_OF_DAY)
 
-            return time !in 6..18
+        return time !in 6..18
     }
-   private fun setDynamicallyWallpaper(icon:String):Int{
-        return when(icon.dropLast(1)){
-            "01"->{
+
+    private fun setDynamicallyWallpaper(icon: String): Int {
+        return when (icon.dropLast(1)) {
+            "01" -> {
                 initWeatherView(PrecipType.CLEAR)
                 R.drawable.bg
             }
-            "02","03","04"->{
+
+            "02", "03", "04" -> {
                 initWeatherView(PrecipType.CLEAR)
                 R.drawable.clouds
             }
-            "09,","10","11"->{
+
+            "09,", "10", "11" -> {
                 initWeatherView(PrecipType.RAIN)
                 R.drawable.rainnybg
             }
-            "13"->{
+
+            "13" -> {
                 initWeatherView(PrecipType.SNOW)
                 R.drawable.snowbg
-            } "50"->{
+            }
+
+            "50" -> {
                 initWeatherView(PrecipType.CLEAR)
                 R.drawable.haze
             }
-            else ->0
+
+            else -> 0
         }
     }
 
-    private fun setEffectRainSnow(icon:String) {
-         when(icon.dropLast(1)){
-            "01"->{
+    private fun setEffectRainSnow(icon: String) {
+        when (icon.dropLast(1)) {
+            "01" -> {
                 initWeatherView(PrecipType.CLEAR)
 
             }
-            "02","03","04"->{
+
+            "02", "03", "04" -> {
                 initWeatherView(PrecipType.CLEAR)
 
             }
-            "09,","10","11"->{
+
+            "09,", "10", "11" -> {
                 initWeatherView(PrecipType.RAIN)
 
             }
-            "13"->{
+
+            "13" -> {
                 initWeatherView(PrecipType.SNOW)
 
-            } "50"->{
+            }
+
+            "50" -> {
                 initWeatherView(PrecipType.CLEAR)
 
             }
@@ -322,7 +350,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun initWeatherView(type:PrecipType){
+    private fun initWeatherView(type: PrecipType) {
         binding.weatherView.apply {
             setWeatherData(type)
             angle = -20
@@ -330,6 +358,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
+
     private fun showError(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
