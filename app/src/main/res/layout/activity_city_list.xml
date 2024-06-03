@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:padding="24dp"
     tools:context=".activity.CityListActivity"
-    android:background="#C7E3FA">
+    android:background="@drawable/searchbg">
 
     <TextView
         android:id="@+id/textView"
@@ -15,6 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:text="Search Your City"
+        android:textColor="#FFFFFF"
         android:textSize="36sp" />
 
     <EditText

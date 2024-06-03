@@ -24,13 +24,21 @@ import com.example.weatherapp.adapter.ForecastAdapter
 import com.example.weatherapp.databinding.ActivityMainBinding
 import com.example.weatherapp.model.CurrentResponseApi
 import com.example.weatherapp.model.ForecastResponseApi
+import com.example.weatherapp.model.TimeZoneResponse
 import com.github.matteobattilana.weather.PrecipType
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import eightbitlab.com.blurview.RenderScriptBlur
 import retrofit2.Call
 import retrofit2.Response
+import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.Calendar
+import java.util.Calendar.HOUR_OF_DAY
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class MainActivity : AppCompatActivity() {
 
@@ -104,6 +112,8 @@ class MainActivity : AppCompatActivity() {
                                 it?.main?.tempMax.let { Math.round(it!!).toString() } + "°"
                             lowTempTxt.text =
                                 it?.main?.tempMin.let { Math.round(it!!).toString() } + "°"
+
+
                             setEffectRainSnow(it?.weather?.get(0)?.icon ?: "-")
 
                             val drawable = if (isNightNow()) R.drawable.nightbg
@@ -282,12 +292,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun isNightNow(): Boolean {
-        val time = calender.get(Calendar.HOUR_OF_DAY)
+    /*private fun isNightTime(sys: CurrentResponseApi.Sys?): Boolean {
+        sys ?: return false // Return false if Sys data is null
+        var  localTime= locale?.localTime.toString()
+       // val currentTime = System.currentTimeMillis() / 1000 // Current time in seconds
+        val sunriseTime = sys?.sunrise ?: 0
+        val sunsetTime = sys?.sunset ?: 0
+         millisecondsSinceMidnight = localTimeToMillisecondsSinceMidnight(localTime)
+        return millisecondsSinceMidnight in sunriseTime..sunsetTime
+
+    }*/
+
+   /* fun localTimeToMillisecondsSinceMidnight(localTime: String): Int {
+        val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS")
+        val parsedTime = formatter.parse(localTime)
+
+        val calendar = Calendar.getInstance()
+        calendar.time = parsedTime
+
+        val hoursInMillis = calendar.get(HOUR_OF_DAY) * 3600 * 1000
+        val minutesInMillis = calendar.get(Calendar.MINUTE) * 60 * 1000
+        val secondsInMillis = calendar.get(Calendar.SECOND) * 1000
+
+        return hoursInMillis + minutesInMillis + secondsInMillis + calendar.get(Calendar.MILLISECOND)
+    }*/
+
+
+
+        private fun isNightNow(): Boolean {
+        val time = calender.get(HOUR_OF_DAY)
 
         return time !in 6..18
     }
-
     private fun setDynamicallyWallpaper(icon: String): Int {
         return when (icon.dropLast(1)) {
             "01" -> {

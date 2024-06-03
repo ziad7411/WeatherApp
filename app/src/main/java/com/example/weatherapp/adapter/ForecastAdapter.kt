@@ -14,7 +14,7 @@ import java.util.TimeZone
 
 class ForecastAdapter : RecyclerView.Adapter<ForecastAdapter.ViewHolder>() {
     private lateinit var binding: ForecastViewholderBinding
-    var timeZone = TimeZone.getDefault()
+    var timeZone = java.util.TimeZone.getDefault()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ForecastAdapter.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -40,9 +40,9 @@ class ForecastAdapter : RecyclerView.Adapter<ForecastAdapter.ViewHolder>() {
         // Format the date with desired format
         //  val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         binding = ForecastViewholderBinding.bind(holder.itemView)
-
         val calendar = Calendar.getInstance(timeZone)
         calendar.time = date
+
 
         val dayOfWeekName = when (calendar.get(Calendar.DAY_OF_WEEK)) {
             1 -> "Sun"
